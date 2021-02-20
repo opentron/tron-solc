@@ -1,5 +1,6 @@
 # tron-solc
 
+V8 wrapper for solc compiler.
 
 ## Version
 
@@ -17,4 +18,37 @@ import "@openzeppelin/contracts/ownership/Ownable.sol";
 import "https://raw.githubusercontent.com/OpenZeppelin/openzeppelin-contracts/release-v2.5.0/contracts/ownership/Ownable.sol"
 
 // ...
+```
+
+## Example
+
+```rust
+use solc::{Compiler, Input};
+
+fn main() {
+    let code = r#"
+    import "@openzeppelin/contracts/ownership/Ownable.sol";
+
+    contract Store is Ownable {
+        uint256 internal value;
+
+        function reset() public {
+            value = 0;
+        }
+
+        function setValue(uint256 v) public {
+            value = v;
+        }
+    }
+    "#;
+    let input = Input::new().optimizer(0).source("Store.sol", code.into());
+    let output = Compiler::new().unwrap().compile(input).unwrap();
+
+    if output.has_errors() {
+        output.format_errors();
+    }
+
+    println!("{}", output.pretty_abi_for("Store").unwrap());
+    println!("{}", output.bytecode_for("Store").unwrap());
+}
 ```
