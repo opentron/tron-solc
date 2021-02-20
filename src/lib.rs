@@ -15,12 +15,79 @@ mod config;
 mod input;
 mod output;
 
-const SOLJSON_FILENAME: &'static str = "solidity-js_0.5.12_GreatVoyage_v4.0.1.js";
+const SOLJSON_FILENAME: &'static str = "solidity-js_0.5.15_GreatVoyage_v4.1.js";
 const SOLJSON_URL: &'static str =
-    "https://github.com/tronprotocol/solidity/releases/download/tv_0.5.12/solidity-js_0.5.12_GreatVoyage_v4.0.1.js";
+    "https://github.com/tronprotocol/solidity/releases/download/tv_0.5.15/solidity-js_0.5.15_GreatVoyage_v4.1.js";
+
+/*
+const SOLJSON_FILENAME: &'static str = "solidity-js_0.6.0_GreatVoyage_v4.1.2.js";
+const SOLJSON_URL: &'static str =
+        "https://github.com/tronprotocol/solidity/releases/download/tv_0.6.0/solidity-js_0.6.0_GreatVoyage_v4.1.2.js";
+*/
 
 lazy_static! {
     static ref INIT_LOCK: Mutex<u32> = Mutex::new(0);
+}
+
+/// The `log` function in js.
+fn debug_callback(
+    scope: &mut v8::HandleScope,
+    args: v8::FunctionCallbackArguments,
+    mut _retval: v8::ReturnValue,
+) {
+    let message = args
+        .get(0)
+        .to_string(scope)
+        .unwrap()
+        .to_rust_string_lossy(scope);
+
+    println!("D: {:?}", message);
+
+    // retval.set(v8::String::new(scope, "test").unwrap().into());
+}
+
+fn translate_import_url(path: &str) -> String {
+    if path.starts_with("@openzeppelin-contracts/") {
+        path.replace(
+            "@openzeppelin-contracts/",
+            "https://raw.githubusercontent.com/OpenZeppelin/openzeppelin-contracts/release-v2.5.0/",
+        )
+    } else if path.starts_with("@openzeppelin/") {
+        path.replace(
+            "@openzeppelin/",
+            "https://raw.githubusercontent.com/OpenZeppelin/openzeppelin-contracts/release-v2.5.0/",
+        )
+    } else if path.starts_with("https://github.com") && path.contains("/blob/") {
+        path.replace("/blob/", "/raw/")
+    } else {
+        path.to_owned()
+    }
+}
+
+fn resolve_import_callback(
+    scope: &mut v8::HandleScope,
+    args: v8::FunctionCallbackArguments,
+    mut retval: v8::ReturnValue,
+) {
+    let path = args
+        .get(0)
+        .to_string(scope)
+        .unwrap()
+        .to_rust_string_lossy(scope);
+
+    println!("I: resolving {:?}", path);
+    let url = translate_import_url(&path);
+    println!("I: resolved {:?}", url);
+
+    let client = reqwest::blocking::Client::builder()
+        .timeout(None)
+        // .proxy(reqwest::Proxy::https("http://127.0.0.1:8001")?)
+        .build()
+        .unwrap();
+    let source_code = client.get(&url).send().unwrap().text().unwrap();
+
+    // println!("source => {:?}", source);
+    retval.set(v8::String::new(scope, &source_code).unwrap().into());
 }
 
 #[must_use]
@@ -85,25 +152,42 @@ impl<'a> Compiler {
     pub fn compile(&self, input: Input) -> Result<Output, Box<dyn Error>> {
         let isolate = &mut v8::Isolate::new(Default::default());
         let scope = &mut v8::HandleScope::new(isolate);
-        let context = v8::Context::new(scope);
+
+        let global = v8::ObjectTemplate::new(scope);
+        global.set(
+            v8::String::new(scope, "log").unwrap().into(),
+            v8::FunctionTemplate::new(scope, debug_callback).into(),
+        );
+        global.set(
+            v8::String::new(scope, "resolveImport").unwrap().into(),
+            v8::FunctionTemplate::new(scope, resolve_import_callback).into(),
+        );
+
+        let context = v8::Context::new_from_template(scope, global);
         let scope = &mut v8::ContextScope::new(scope, context);
 
         eval(scope, &self.code).unwrap();
         eval(scope, include_str!("wrapper.js")).unwrap();
 
-        println!("=> {}", serde_json::to_string_pretty(&input)?);
+        // println!("=> {}", serde_json::to_string_pretty(&input)?);
         let result = eval(
             scope,
-            &format!("compile(JSON.stringify({}), 0)", serde_json::to_string(&input)?),
+            &format!(
+                "compile(JSON.stringify({}), importCallback)",
+                serde_json::to_string(&input)?
+            ),
         )
         .unwrap();
         let result = result.to_string(scope).unwrap();
         let result = result.to_rust_string_lossy(scope);
-        // println!("ret => {}", result);
         let output: Output = serde_json::from_str(&result)?;
 
         if output.has_errors() {
-            return Err(Box::new(io::Error::new(io::ErrorKind::Other, output.error_message())));
+            output.format_errors();
+            return Err(Box::new(io::Error::new(
+                io::ErrorKind::Other,
+                output.error_message(),
+            )));
         }
 
         Ok(output)
