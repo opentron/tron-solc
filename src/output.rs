@@ -70,7 +70,7 @@ impl Output {
         Err(io::Error::new(io::ErrorKind::Other, "abi not found"))
     }
 
-    pub fn pretty_abi_for(&self, cntr_name: &str) -> Result<String, io::Error> {
+    pub fn pretty_abi_of(&self, cntr_name: &str) -> Result<String, io::Error> {
         for (_fname, cntrs) in &self.contracts {
             if cntrs.contains_key(cntr_name) {
                 return serde_json::to_string_pretty(&cntrs[cntr_name].abi)
@@ -80,7 +80,7 @@ impl Output {
         Err(io::Error::new(io::ErrorKind::Other, "abi not found"))
     }
 
-    pub fn bytecode_for(&self, cntr_name: &str) -> Result<&str, io::Error> {
+    pub fn bytecode_of(&self, cntr_name: &str) -> Result<&str, io::Error> {
         for (_fname, cntrs) in &self.contracts {
             if cntrs.contains_key(cntr_name) {
                 return Ok(&cntrs[cntr_name].evm.bytecode.object);

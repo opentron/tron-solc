@@ -77,7 +77,7 @@ fn resolve_import_callback(
 
     println!("I: resolving {:?}", path);
     let url = translate_import_url(&path);
-    println!("I: resolved {:?}", url);
+    eprintln!("D: resolved {:?}", url);
 
     let client = reqwest::blocking::Client::builder()
         .timeout(None)
@@ -223,7 +223,7 @@ mod tests {
         "#;
         let input = Input::new().optimizer(0).source("Store.sol", code.into());
         let output = Compiler::new().unwrap().compile(input).unwrap();
-        println!("=> {:?}", output.bytecode_for("Store").unwrap());
+        println!("=> {:?}", output.bytecode_of("Store").unwrap());
     }
 
     #[test]

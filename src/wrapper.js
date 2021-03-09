@@ -57,4 +57,4 @@ function _callback(data, contents, error) {
 
 var importCallback = addFunction(_callback, 'viiiii');
 
-log("Hello from js");
+log("soljson init ok!");

@@ -48,7 +48,7 @@ fn main() {
         output.format_errors();
     }
 
-    println!("{}", output.pretty_abi_for("Store").unwrap());
-    println!("{}", output.bytecode_for("Store").unwrap());
+    println!("{}", output.pretty_abi_of("Store").unwrap());
+    println!("{}", output.bytecode_of("Store").unwrap());
 }
 ```
