@@ -16,6 +16,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .value_name("DIR")
                 .about("Output directory"),
         )
+        .arg(
+            Arg::new("optimizer-runs")
+                .long("optimizer-runs")
+                .value_name("n")
+                .default_value("0")
+                .about("Runs of optimizer"),
+        )
         .arg(Arg::new("INPUT").required(true).about("Input Contract file"))
         .get_matches();
 
@@ -25,7 +32,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let outdir = matches.value_of("output").unwrap();
     fs::create_dir_all(outdir)?;
 
-    let input = Input::new().optimizer(0).source(fname, code.into());
+    let optimizer_runs = matches.value_of("optimizer-runs").expect("has default; qed").parse()?;
+
+    let input = Input::new().optimizer(optimizer_runs).source(fname, code.into());
     let output = Compiler::new().unwrap().compile(input).unwrap();
 
     if output.has_errors() {
