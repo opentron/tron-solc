@@ -7,7 +7,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let matches = App::new("tron-solc")
         .version("0.5.15")
         .author("andelf <andelf@gmail.com>")
-        .about("Does awesome things")
+        .about("The all-in-one tron-solidity compiler.")
         .arg(
             Arg::new("output")
                 .short('o')
@@ -22,6 +22,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .value_name("n")
                 .default_value("0")
                 .about("Runs of optimizer"),
+        )
+        .arg(
+            Arg::new("proxy")
+                .long("proxy")
+                .value_name("URL")
+                .env("ALL_PROXY")
+                .about("Proxy server"),
         )
         .arg(
             Arg::new("INPUT")
@@ -41,10 +48,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .expect("has default; qed")
         .parse()?;
 
+    if let Some(url) = matches.value_of("proxy") {
+        solc::set_proxy(url);
+    }
+
     let input = Input::new()
         .optimizer(optimizer_runs)
         .source(fname, code.into());
-    let output = Compiler::new().unwrap().compile(input).unwrap();
+    let output = Compiler::new()?.compile(input)?;
 
     if output.has_errors() {
         output.format_errors();
@@ -54,7 +65,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let fpath = Path::new(import_name);
         let fname = fpath.file_name().unwrap().to_str().unwrap();
         let name = fpath.file_stem().unwrap().to_str().unwrap();
-        println!("W: {} => {}", fname, import_name);
+        println!("I: Writing {} => {}", fname, import_name);
         let mut output_path = Path::new(outdir).to_path_buf();
         output_path.push(name);
 

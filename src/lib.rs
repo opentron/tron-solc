@@ -25,8 +25,29 @@ const SOLJSON_URL: &'static str =
         "https://github.com/tronprotocol/solidity/releases/download/tv_0.6.0/solidity-js_0.6.0_GreatVoyage_v4.1.2.js";
 */
 
+static mut ALL_PROXY: Option<String> = None;
+
 lazy_static! {
     static ref INIT_LOCK: Mutex<u32> = Mutex::new(0);
+    static ref HTTP_CLIENT: reqwest::blocking::Client = {
+        let builder = reqwest::blocking::Client::builder().timeout(None);
+
+        if let Some(url) = unsafe { ALL_PROXY.as_ref() } {
+            eprintln!("D: using proxy {}", url);
+            builder
+                .proxy(reqwest::Proxy::all(url).expect("set proxy"))
+                .build()
+                .unwrap()
+        } else {
+            builder.build().unwrap()
+        }
+    };
+}
+
+pub fn set_proxy(url: &str) {
+    unsafe {
+        ALL_PROXY = Some(url.to_owned());
+    }
 }
 
 /// The `log` function in js.
@@ -66,12 +87,7 @@ fn translate_import_url(path: &str) -> String {
 
 fn fetch_uri(path: &str) -> String {
     if path.starts_with("http://") || path.starts_with("https://") {
-        let client = reqwest::blocking::Client::builder()
-            .timeout(None)
-            // .proxy(reqwest::Proxy::https("http://127.0.0.1:8001")?)
-            .build()
-            .unwrap();
-        client.get(path).send().unwrap().text().unwrap()
+        HTTP_CLIENT.get(path).send().unwrap().text().unwrap()
     } else {
         fs::read_to_string(path).unwrap()
     }
@@ -152,11 +168,7 @@ impl<'a> Compiler {
             })
         } else {
             eprintln!("I: downloading compiler...");
-            let client = reqwest::blocking::Client::builder()
-                .timeout(None)
-                // .proxy(reqwest::Proxy::https("http://127.0.0.1:8001")?)
-                .build()?;
-            let code = client.get(SOLJSON_URL).send()?.text()?;
+            let code = HTTP_CLIENT.get(SOLJSON_URL).send()?.text()?;
             let mut file = File::create(&soljson)?;
             file.write_all(code.as_bytes())?;
             eprintln!("I: downloading compiler ok.");
