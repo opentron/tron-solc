@@ -23,7 +23,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .default_value("0")
                 .about("Runs of optimizer"),
         )
-        .arg(Arg::new("INPUT").required(true).about("Input Contract file"))
+        .arg(
+            Arg::new("INPUT")
+                .required(true)
+                .about("Input Contract file"),
+        )
         .get_matches();
 
     let fname = matches.value_of("INPUT").unwrap();
@@ -32,9 +36,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let outdir = matches.value_of("output").unwrap();
     fs::create_dir_all(outdir)?;
 
-    let optimizer_runs = matches.value_of("optimizer-runs").expect("has default; qed").parse()?;
+    let optimizer_runs = matches
+        .value_of("optimizer-runs")
+        .expect("has default; qed")
+        .parse()?;
 
-    let input = Input::new().optimizer(optimizer_runs).source(fname, code.into());
+    let input = Input::new()
+        .optimizer(optimizer_runs)
+        .source(fname, code.into());
     let output = Compiler::new().unwrap().compile(input).unwrap();
 
     if output.has_errors() {
@@ -45,11 +54,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let fpath = Path::new(import_name);
         let fname = fpath.file_name().unwrap().to_str().unwrap();
         let name = fpath.file_stem().unwrap().to_str().unwrap();
-        println!("I: {} => {}", fname, import_name);
+        println!("W: {} => {}", fname, import_name);
         let mut output_path = Path::new(outdir).to_path_buf();
         output_path.push(name);
 
-        fs::write(output_path.with_extension("abi"), output.pretty_abi_of(name)?)?;
+        fs::write(
+            output_path.with_extension("abi"),
+            output.pretty_abi_of(name)?,
+        )?;
         fs::write(output_path.with_extension("bin"), output.bytecode_of(name)?)?;
     }
     Ok(())

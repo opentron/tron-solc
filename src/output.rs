@@ -39,7 +39,10 @@ pub struct Output {
 
 impl Output {
     pub fn has_errors(&self) -> bool {
-        self.errors.iter().find(|err| err.severity == "error").is_some()
+        self.errors
+            .iter()
+            .find(|err| err.severity == "error")
+            .is_some()
     }
 
     pub fn error_message(&self) -> String {

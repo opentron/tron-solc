@@ -30,8 +30,16 @@ lazy_static! {
 }
 
 /// The `log` function in js.
-fn debug_callback(scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, mut _retval: v8::ReturnValue) {
-    let message = args.get(0).to_string(scope).unwrap().to_rust_string_lossy(scope);
+fn debug_callback(
+    scope: &mut v8::HandleScope,
+    args: v8::FunctionCallbackArguments,
+    mut _retval: v8::ReturnValue,
+) {
+    let message = args
+        .get(0)
+        .to_string(scope)
+        .unwrap()
+        .to_rust_string_lossy(scope);
 
     println!("D: {:?}", message);
 
@@ -56,23 +64,35 @@ fn translate_import_url(path: &str) -> String {
     }
 }
 
+fn fetch_uri(path: &str) -> String {
+    if path.starts_with("http://") || path.starts_with("https://") {
+        let client = reqwest::blocking::Client::builder()
+            .timeout(None)
+            // .proxy(reqwest::Proxy::https("http://127.0.0.1:8001")?)
+            .build()
+            .unwrap();
+        client.get(path).send().unwrap().text().unwrap()
+    } else {
+        fs::read_to_string(path).unwrap()
+    }
+}
+
 fn resolve_import_callback(
     scope: &mut v8::HandleScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
-    let path = args.get(0).to_string(scope).unwrap().to_rust_string_lossy(scope);
+    let path = args
+        .get(0)
+        .to_string(scope)
+        .unwrap()
+        .to_rust_string_lossy(scope);
 
     println!("I: resolving {:?}", path);
     let url = translate_import_url(&path);
     eprintln!("D: resolved {:?}", url);
 
-    let client = reqwest::blocking::Client::builder()
-        .timeout(None)
-        // .proxy(reqwest::Proxy::https("http://127.0.0.1:8001")?)
-        .build()
-        .unwrap();
-    let mut source_code = client.get(&url).send().unwrap().text().unwrap();
+    let mut source_code = fetch_uri(&url);
 
     // Fix: isContract()
     if source_code.contains(".isContract()") {
@@ -182,7 +202,10 @@ impl<'a> Compiler {
 
         if output.has_errors() {
             output.format_errors();
-            return Err(Box::new(io::Error::new(io::ErrorKind::Other, output.error_message())));
+            return Err(Box::new(io::Error::new(
+                io::ErrorKind::Other,
+                output.error_message(),
+            )));
         }
 
         Ok(output)

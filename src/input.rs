@@ -53,13 +53,17 @@ impl Input {
         if runs == 0 {
             self.settings.optimizer = None;
         } else {
-            self.settings.optimizer = Some(OptimizerSetting { enabled: true, runs });
+            self.settings.optimizer = Some(OptimizerSetting {
+                enabled: true,
+                runs,
+            });
         }
         self
     }
 
     pub fn source(mut self, filename: &str, content: String) -> Self {
-        self.sources.insert(filename.into(), InputSource { content });
+        self.sources
+            .insert(filename.into(), InputSource { content });
         self
     }
 }
