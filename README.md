@@ -2,6 +2,14 @@
 
 V8 wrapper for solc compiler.
 
+## Quick Start
+
+```sh
+cargo run -- --output ./build ./examples/ERC20Mintable.sol
+```
+
+This command will compile `ERC20Mintable` and output abi and bin files to `build` directory.
+
 ## Version
 
 Tron-Solidity v5.15
