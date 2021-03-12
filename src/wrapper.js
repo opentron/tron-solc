@@ -43,7 +43,7 @@ var copyFromCString = soljson.UTF8ToString || soljson.Pointer_stringify;
 // >= 6.0.0
 // function _callback(context, kind, data, contents, error) {}
 
-
+// import resolver callback
 function _callback(data, contents, error) {
     // log("in callback");
     const importPath = copyFromCString(data);

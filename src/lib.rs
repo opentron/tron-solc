@@ -44,6 +44,7 @@ lazy_static! {
     };
 }
 
+/// Set https proxy.
 pub fn set_proxy(url: &str) {
     unsafe {
         ALL_PROXY = Some(url.to_owned());
