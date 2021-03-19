@@ -35,7 +35,11 @@ pub struct Input {
 
 impl Input {
     pub fn new() -> Self {
-        let required_fields: Vec<String> = vec!["abi".into(), "evm.bytecode.object".into()];
+        let required_fields: Vec<String> = vec![
+            "abi".into(),
+            "evm.bytecode.object".into(),
+            "storageLayout".into(),
+        ];
         let cntr_sel = HashMap::from_iter(vec![("*".into(), required_fields)]);
 
         Input {

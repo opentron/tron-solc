@@ -61,19 +61,29 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         output.format_errors();
     }
 
-    for (import_name, _cntr) in output.contracts.iter() {
-        let fpath = Path::new(import_name);
-        let fname = fpath.file_name().unwrap().to_str().unwrap();
-        let name = fpath.file_stem().unwrap().to_str().unwrap();
-        println!("I: Writing {} => {}", fname, import_name);
-        let mut output_path = Path::new(outdir).to_path_buf();
-        output_path.push(name);
+    for (file_name, cntrs) in output.contracts.iter() {
+        for (cntr_name, cntr) in cntrs.iter() {
+            let fpath = Path::new(cntr_name);
+            let fname = fpath.file_name().unwrap().to_str().unwrap();
+            let name = fpath.file_stem().unwrap().to_str().unwrap();
+            println!("I: writing {} ({})", fname, file_name);
+            let mut output_path = Path::new(outdir).to_path_buf();
+            output_path.push(name);
 
-        fs::write(
-            output_path.with_extension("abi"),
-            output.pretty_abi_of(name)?,
-        )?;
-        fs::write(output_path.with_extension("bin"), output.bytecode_of(name)?)?;
+            fs::write(
+                output_path.with_extension("abi"),
+                output.pretty_abi_of(name)?,
+            )?;
+            fs::write(output_path.with_extension("bin"), output.bytecode_of(name)?)?;
+
+            if cntr.has_storage_layout() {
+                println!("I: writing {}.layout", cntr_name);
+                fs::write(
+                    output_path.with_extension("layout"),
+                    serde_json::to_string_pretty(&cntr.storage_layout)?,
+                )?;
+            }
+        }
     }
     Ok(())
 }

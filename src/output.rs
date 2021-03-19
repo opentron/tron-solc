@@ -26,6 +26,15 @@ pub struct ContractEvm {
 pub struct Contract {
     pub abi: serde_json::Value,
     pub evm: ContractEvm,
+    /// https://docs.soliditylang.org/en/v0.6.8/internals/layout_in_storage.html
+    #[serde(rename = "storageLayout")]
+    pub storage_layout: serde_json::Value,
+}
+
+impl Contract {
+    pub fn has_storage_layout(&self) -> bool {
+        !self.storage_layout["types"].is_null()
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
