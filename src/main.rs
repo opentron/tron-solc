@@ -17,10 +17,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .about("Output directory"),
         )
         .arg(
+            Arg::new("optimize")
+                .long("optimize")
+                .about("Enable bytecode optimizer"),
+        )
+        .arg(
             Arg::new("optimizer-runs")
                 .long("optimizer-runs")
                 .value_name("n")
                 .default_value("0")
+                .requires("optimize")
                 .about("Runs of optimizer"),
         )
         .arg(
@@ -40,13 +46,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let outdir = matches.value_of("output").unwrap();
     fs::create_dir_all(outdir)?;
 
-    let optimizer_runs = matches.value_of("optimizer-runs").expect("has default; qed").parse()?;
-
     if let Some(url) = matches.value_of("proxy") {
         solc::set_proxy(url);
     }
 
-    let input = Input::new().optimizer(optimizer_runs).source(fname, code.into());
+    let (enabled, runs) = if matches.is_present("optimize") {
+        (true, matches.value_of("optimizer-runs").unwrap().parse()?)
+    } else {
+        (false, 0)
+    };
+
+    let input = Input::new()
+        .optimizer(enabled, runs)
+        .source(fname, code.into());
     let output = Compiler::new()?.compile(input)?;
 
     if output.has_errors() {

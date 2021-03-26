@@ -53,15 +53,9 @@ impl Input {
         }
     }
 
-    pub fn optimizer(mut self, runs: usize) -> Self {
-        if runs == 0 {
-            self.settings.optimizer = None;
-        } else {
-            self.settings.optimizer = Some(OptimizerSetting {
-                enabled: true,
-                runs,
-            });
-        }
+    pub fn optimizer(mut self, enabled: bool, runs: usize) -> Self {
+        self.settings.optimizer = Some(OptimizerSetting { enabled, runs });
+
         self
     }
 
